@@ -45,7 +45,7 @@ func fetchMusic(c *gin.Context, data string) {
 	r, w := io.Pipe()
 	defer r.Close()
 
-	ydl := exec.Command("youtube-dl", data, "-o-")
+	ydl := exec.Command("yt-dlp", data, "-o-")
 	ffmpeg := exec.Command("ffmpeg", "-i", "/dev/stdin", "-vn", "-f", "mp3", "-")
 
 	ydl.Stdout = w
