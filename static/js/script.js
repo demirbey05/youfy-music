@@ -1,6 +1,4 @@
-let audioContext = new (window.AudioContext || window.webkitAudioContext)();
-let audioBuffer;
-let sourceNode;
+let audioElement;
 
 function postData() {
     const inputData = document.getElementById('inputData').value;
@@ -12,29 +10,40 @@ function postData() {
         },
         body: JSON.stringify({ data: inputData }),
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
 
-        const contentType = response.headers.get('content-type');
+            const contentType = response.headers.get('content-type');
 
-        if (contentType && contentType.includes('audio/mp3')) {
-            return response.body.getReader().read().then(processAudioStream);
-        } else {
-            throw new Error('Invalid content type');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
+            if (contentType && contentType.includes('audio/mp3')) {
+                return response.blob().then(createObjectURLAndPlay);
+            } else {
+                throw new Error('Invalid content type');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
 }
 
-function processAudioStream({ value, done }) {
-    new Audio("data:audio/mp3;base64," + btoa(String.fromCharCode.apply(null, value))).play()
+function createObjectURLAndPlay(blob) {
+    const objectURL = URL.createObjectURL(blob);
+
+    if (audioElement) {
+        audioElement.pause();
+        audioElement.src = objectURL;
+    } else {
+        audioElement = new Audio(objectURL);
+    }
+
+    audioElement.play();
 }
 
-function playAudio() {
-    // Trigger the postData function to fetch and play the audio
-    postData();
-}
+// Optional: Stop playback when the user navigates away from the page
+window.addEventListener('beforeunload', () => {
+    if (audioElement) {
+        audioElement.pause();
+    }
+});
