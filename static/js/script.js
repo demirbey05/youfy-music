@@ -1,7 +1,31 @@
 let audioElement;
+let loadingCircle = document.getElementById('loading-circle');
+let playButton = document.getElementById('playButton');
+let stopButton = document.getElementById('stopButton');
+
+function showLoading() {
+    loadingCircle.style.display = 'block';
+}
+
+function hideLoading() {
+    loadingCircle.style.display = 'none';
+}
+
+function enableButtons() {
+    playButton.disabled = false;
+    stopButton.disabled = false;
+}
+
+function disableButtons() {
+    playButton.disabled = true;
+    stopButton.disabled = true;
+}
 
 function postData() {
     const inputData = document.getElementById('inputData').value;
+
+    // Show loading indicator while waiting for response
+    showLoading();
 
     fetch('/submit', {
         method: 'POST',
@@ -25,6 +49,11 @@ function postData() {
         })
         .catch(error => {
             console.error('Error:', error);
+        })
+        .finally(() => {
+            // Hide loading indicator and enable playback controls
+            hideLoading();
+            enableButtons();
         });
 }
 
@@ -41,9 +70,15 @@ function createObjectURLAndPlay(blob) {
     audioElement.play();
 }
 
-// Optional: Stop playback when the user navigates away from the page
-window.addEventListener('beforeunload', () => {
+function playAudio() {
+    if (audioElement) {
+        audioElement.play();
+    }
+}
+
+function stopAudio() {
     if (audioElement) {
         audioElement.pause();
+        audioElement.currentTime = 0;
     }
-});
+}

@@ -18,6 +18,7 @@ func main() {
 	router := gin.Default()
 	router.LoadHTMLGlob("static/index.html")
 	router.StaticFile("/script.js", "./static/js/script.js")
+	router.StaticFile("/styles.css", "./static/css/styles.css")
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"title": "Main website",
