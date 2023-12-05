@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,38 +35,60 @@ func main() {
 		header := w.Header()
 		header.Set("Content-Type", "audio/mp3")
 		w.WriteHeader(http.StatusOK)
+		err := checkUrl(body.Data)
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest, err)
+			return
+		}
 		fetchMusic(c, body.Data)
 	})
 
-	router.Run(":10001")
+	router.Run(":80")
 }
 
 func fetchMusic(c *gin.Context, data string) {
 
-	r, w := io.Pipe()
-	defer r.Close()
-
 	ydl := exec.Command("yt-dlp", data, "-o-")
 	ffmpeg := exec.Command("ffmpeg", "-i", "/dev/stdin", "-vn", "-f", "mp3", "-")
 
-	ydl.Stdout = w
+	ydlOut, err := ydl.StdoutPipe()
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+
 	ydl.Stderr = os.Stderr
 
-	ffmpeg.Stdin = r
+	ffmpeg.Stdin = ydlOut
 	ffmpeg.Stdout = c.Writer
 	ffmpeg.Stderr = os.Stderr
 	fmt.Println("Starting-----------------------")
 	go func() {
-		defer w.Close()
+		defer ydlOut.Close()
 		if err := ydl.Run(); err != nil {
-			panic(err)
+			c.AbortWithError(http.StatusBadRequest, err)
 		}
 	}()
 
 	if err := ffmpeg.Run(); err != nil {
-		panic(err)
+		c.AbortWithError(http.StatusBadRequest, err)
 	}
-	r.Close()
 
 	fmt.Println("Done-----------------------")
+}
+
+func checkUrl(url string) error {
+
+	// Define the regular expression pattern
+	pattern := `^https://www\.youtube\.com/watch\?v=[a-zA-Z0-9_\-]+$`
+
+	// Compile the regular expression
+	re := regexp.MustCompile(pattern)
+
+	// Check if the string matches the pattern
+	if re.MatchString(url) {
+		return nil
+	} else {
+		return fmt.Errorf("invalid url")
+	}
 }

@@ -79,6 +79,5 @@ function playAudio() {
 function stopAudio() {
     if (audioElement) {
         audioElement.pause();
-        audioElement.currentTime = 0;
     }
 }
